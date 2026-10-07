@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Barcode Generator</title>
+  <meta name="description" content="Generate QR codes and barcodes (Code 128, EAN, UPC, Code 39, ITF, Codabar) in the browser and download them as PNG or SVG.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    try {
+      var t = localStorage.getItem('theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="https://cyphera.my.id" title="Back to cyphera.my.id">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2v16H3zm4 0h1v16H7zm3 0h3v16h-3zm5 0h1v16h-1zm3 0h3v16h-3z"/></svg>
+      <span>Barcode Generator</span>
+    </a>
+    <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+      <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>
+    </button>
+  </header>
+
+  <main class="layout">
+    <section class="panel controls" aria-label="Settings">
+      <label class="field">
+        <span class="label">Type</span>
+        <select id="type">
+          <optgroup label="2D">
+            <option value="QR" selected>QR Code</option>
+          </optgroup>
+          <optgroup label="1D (linear)">
+            <option value="CODE128">Code 128</option>
+            <option value="EAN13">EAN-13</option>
+            <option value="EAN8">EAN-8</option>
+            <option value="UPC">UPC-A</option>
+            <option value="CODE39">Code 39</option>
+            <option value="ITF14">ITF-14</option>
+            <option value="codabar">Codabar</option>
+          </optgroup>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="label">Content</span>
+        <textarea id="value" rows="3" spellcheck="false">https://cyphera.my.id</textarea>
+        <span id="hint" class="hint"></span>
+      </label>
+
+      <div class="grid2">
+        <label class="field">
+          <span class="label">Foreground</span>
+          <span class="color"><input id="fg" type="color" value="#000000"><code id="fg-hex">#000000</code></span>
+        </label>
+        <label class="field">
+          <span class="label">Background</span>
+          <span class="color"><input id="bg" type="color" value="#ffffff"><code id="bg-hex">#ffffff</code></span>
+        </label>
+      </div>
+
+      <label class="check">
+        <input id="transparent" type="checkbox">
+        <span>Transparent background</span>
+      </label>
+
+      <!-- QR-only options -->
+      <div class="opts" data-for="qr">
+        <label class="field">
+          <span class="label">Error correction</span>
+          <select id="ecc">
+            <option value="L">L: recovers ~7%</option>
+            <option value="M" selected>M: recovers ~15%</option>
+            <option value="Q">Q: recovers ~25%</option>
+            <option value="H">H: recovers ~30%</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label">Quiet zone <output id="margin-out">4</output> modules</span>
+          <input id="margin" type="range" min="0" max="10" value="4">
+        </label>
+      </div>
+
+      <!-- 1D-only options -->
+      <div class="opts" data-for="linear" hidden>
+        <div class="grid2">
+          <label class="field">
+            <span class="label">Bar width <output id="bw-out">2</output></span>
+            <input id="bw" type="range" min="1" max="5" value="2">
+          </label>
+          <label class="field">
+            <span class="label">Height <output id="bh-out">100</output></span>
+            <input id="bh" type="range" min="30" max="200" step="5" value="100">
+          </label>
+        </div>
+        <label class="check">
+          <input id="show-text" type="checkbox" checked>
+          <span>Show text under the bars</span>
+        </label>
+      </div>
+
+      <label class="field">
+        <span class="label">PNG size <output id="scale-out">8</output>× (<span id="px">–</span>)</span>
+        <input id="scale" type="range" min="1" max="20" value="8">
+      </label>
+    </section>
+
+    <section class="panel preview-panel" aria-label="Preview">
+      <div id="preview" class="preview" aria-live="polite"></div>
+      <p id="error" class="error" role="alert" hidden></p>
+      <div class="actions">
+        <button id="dl-png" class="btn primary" type="button">Download PNG</button>
+        <button id="dl-svg" class="btn" type="button">Download SVG</button>
+        <button id="copy" class="btn" type="button">Copy image</button>
+      </div>
+      <p class="note">Everything runs in your browser. Nothing you type is sent anywhere.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <a href="https://cyphera.my.id">cyphera.my.id</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://github.com/FirmansyahDzakwanArifien/barcode">Source</a>
+  </footer>
+
+  <script src="vendor/qrcode.min.js"></script>
+  <script src="vendor/JsBarcode.all.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
